@@ -11,7 +11,7 @@ This project is still under development, and we welcome any suggestions for impr
 ## Installation
 1. Clone this repository:
 ```bash
-$ git clone https://github.com/your_username/blockchain-based-inventory.git
+$ git clone https://github.com/dodo920306/Blockchain_based_Inventory_of_Scope_3_Carbon_Emissions.git
 $ cd blockchain-based-inventory/website
 ```
 
