@@ -115,7 +115,7 @@ def getTx(request):
     cmd = "/home/ubuntu/website/backend/base/api/fetch_transactions/fetch_transactions"
     res = subprocess.run(cmd.split(" "), env=env, capture_output=True)
     resFormatString = res.stdout.decode().split("\n")[:-1]
-
+    for i in range(0, len(resFormatString)):
         resFormatString[i] = json.loads(resFormatString[i])
         resFormatString[i]['Payload'] = json.loads(resFormatString[i]['Payload'])
     return JsonResponse({"output": resFormatString})
