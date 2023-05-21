@@ -14,7 +14,7 @@ export const AuthProvider = ({children}) => {
 
     const navigate = useNavigate();
 
-    let loginUser = async (e )=> {
+    let loginUser = async (e)=> {
         e.preventDefault()
         let response = await fetch('http://10.8.2.183:8000/api/token/', {
             method:'POST',
@@ -29,7 +29,7 @@ export const AuthProvider = ({children}) => {
             setAuthTokens(data)
             setUser(jwt_decode(data.access))
             localStorage.setItem('authTokens', JSON.stringify(data))
-            navigate('/');
+            
         }else{
             alert('Username or password incorrect')
         }
@@ -42,8 +42,33 @@ export const AuthProvider = ({children}) => {
         navigate('/login');
     }
 
+    let signupUser = async (e)=> {
+        e.preventDefault()        
+        let response = await fetch('http://10.8.2.183:8000/api/signup/', {
+            method:'POST',
+            headers:{
+                'Content-Type':'application/json'
+            },
+            body:JSON.stringify({
+                'username':e.target.username.value, 
+                'password':e.target.password.value,
+                'email': `${e.target.organization.value}@gmail.com`,
+            })
+        })
+        let data = await response.json()
+        console.log("sing up data:", data)
+        if(response.status === 200){
+            console.log('sign up 200')
+            alert('Account created, Please login')
+            navigate('/login')
+        }else{
+            alert('Failed to create account')
+            
+        }
+    }
+
     let updateToken = async ()=> {
-        console.log("useEffect from auth")
+        console.log("update token  from auth")
         let response = await fetch('http://10.8.2.183:8000/api/token/refresh/', {
             method:'POST',
             headers:{
@@ -72,6 +97,7 @@ export const AuthProvider = ({children}) => {
         authTokens:authTokens,
         loginUser:loginUser,
         logoutUser:logoutUser,
+        signupUser:signupUser,
     }
 
     useEffect(()=> {

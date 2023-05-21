@@ -74,7 +74,7 @@ func main() {
 	defer gw.Close()
 
 	// Override default values for chaincode and channel name as they may differ in testing contexts.
-	chaincodeName := "token_erc20"
+	chaincodeName := "bisce"
 	if ccname := os.Getenv("CHAINCODE_NAME"); ccname != "" {
 		chaincodeName = ccname
 	}
@@ -102,6 +102,11 @@ func main() {
 		"symbol": symbol,
 		"decimals": decimals,
 		"help": help,
+		"register": register,
+		"use": use,
+		"useFrom": useFrom,
+		"usedBalanceOf": usedBalanceOf,
+		"clientAccountUsedBalance": clientAccountUsedBalance,
 	}
 
     if f, ok := funcMap[args[0]]; ok {
@@ -223,6 +228,21 @@ func transfer(contract *client.Contract, args []string) {
 	fmt.Println("*** Transaction committed successfully")
 }
 
+func use(contract *client.Contract, args []string) {
+	if len(args) != 2 {
+        panic(fmt.Errorf("Usage: use <recipient> <amount>"))
+    }
+
+	fmt.Println("--> Submit Transaction: Use.")
+
+	_, err := contract.SubmitTransaction("Use", args[0], args[1])
+	if err != nil {
+		panic(fmt.Errorf("failed to submit transaction: %w", err))
+	}
+
+	fmt.Println("*** Transaction committed successfully")
+}
+
 func balanceOf(contract *client.Contract, args []string) {
     if len(args) != 1 {
         panic(fmt.Errorf("Usage: balanceOf <account>"))
@@ -231,6 +251,22 @@ func balanceOf(contract *client.Contract, args []string) {
 	fmt.Println("--> Evaluate Transaction: BalanceOf.")
 
 	evaluateResult, err := contract.EvaluateTransaction("BalanceOf", args[0])
+	if err != nil {
+		panic(fmt.Errorf("failed to evaluate transaction: %w", err))
+	}
+	result := formatJSON(evaluateResult)
+
+	fmt.Printf("*** Result: %s\n", result)
+}
+
+func usedBalanceOf(contract *client.Contract, args []string) {
+    if len(args) != 1 {
+        panic(fmt.Errorf("Usage: usedBalanceOf <account>"))
+    }
+
+	fmt.Println("--> Evaluate Transaction: UsedBalanceOf.")
+
+	evaluateResult, err := contract.EvaluateTransaction("UsedBalanceOf", args[0])
 	if err != nil {
 		panic(fmt.Errorf("failed to evaluate transaction: %w", err))
 	}
@@ -255,6 +291,22 @@ func clientAccountBalance(contract *client.Contract, args []string) {
 	fmt.Printf("*** Result: %s\n", result)
 }
 
+func clientAccountUsedBalance(contract *client.Contract, args []string) {
+    if len(args) != 0 {
+        panic(fmt.Errorf("Usage: clientAccountUsedBalance"))
+    }
+
+	fmt.Println("--> Evaluate Transaction: ClientAccountUsedBalance. ")
+
+	evaluateResult, err := contract.EvaluateTransaction("ClientAccountUsedBalance")
+	if err != nil {
+		panic(fmt.Errorf("failed to evaluate transaction: %w", err))
+	}
+	result := formatJSON(evaluateResult)
+
+	fmt.Printf("*** Result: %s\n", result)
+}
+
 func clientAccountID(contract *client.Contract, args []string) {
     if len(args) != 0 {
         panic(fmt.Errorf("Usage: clientAccountID"))
@@ -268,6 +320,21 @@ func clientAccountID(contract *client.Contract, args []string) {
 	}
 
 	fmt.Printf("*** Result: %s\n", evaluateResult)
+}
+
+func register(contract *client.Contract, args []string) {
+	if len(args) != 0 {
+        panic(fmt.Errorf("Usage: register"))
+    }
+
+	fmt.Println("--> Submit Transaction: Register.")
+
+	_, err := contract.SubmitTransaction("ClientAccountID")
+	if err != nil {
+		panic(fmt.Errorf("failed to submit transaction: %w", err))
+	}
+
+	fmt.Println("*** Transaction committed successfully")
 }
 
 func totalSupply(contract *client.Contract, args []string) {
@@ -332,6 +399,21 @@ func transferFrom(contract *client.Contract, args []string) {
 	fmt.Println("*** Transaction committed successfully")
 }
 
+func useFrom(contract *client.Contract, args []string) {
+	if len(args) != 3 {
+		panic(fmt.Errorf("Usage: useFrom <from> <to> <value>"))
+	}
+
+	fmt.Println("--> Submit Transaction: UseFrom. ")
+
+	_, err := contract.SubmitTransaction("UseFrom", args[0], args[1], args[2])
+	if err != nil {
+		panic(fmt.Errorf("failed to submit transaction: %w", err))
+	}
+
+	fmt.Println("*** Transaction committed successfully")
+}
+
 func name(contract *client.Contract, args []string) {
 	if len(args) != 0 {
         panic(fmt.Errorf("Usage: name"))
@@ -379,22 +461,26 @@ func decimals(contract *client.Contract, args []string) {
 
 func help(contract *client.Contract, args []string) {
     fmt.Print(`Usage:
-  token_erc_20 command [arguments]
+    token_erc_20 command [arguments]
 Commands:
-  mint                  <amount>                | Creates new tokens and adds them to minter's account balance.
-  burn                  <amount>                | Redeems tokens the minter's account balance.
-  transfer              <recipient> <amount>    | Transfers tokens from client account to recipient account.
-  balanceOf             <account>               | Returns the balance of the given account.
-  clientAccountBalance                          | Returns the balance of the requesting client's account.
-  clientAccountID                               | Returns the id of the requesting client's account.
-  totalSupply                                   | Returns the total token supply.
-  approve               <spender> <value>       | Allows the spender to withdraw from the calling client's token account.
-  allowance             <owner>	<spender>       | Returns the amount still available for the spender to withdraw from the owner.
-  transferFrom          <from> <to> <value>     | Transfers the value amount from the \"from\" address to the \"to\" address.
-  name                                          | Returns a descriptive name for fungible tokens in this contract.
-  symbol                                        | Returns an abbreviated name for fungible tokens in this contract.
-  decimals                                      | Returns the decimals for fungible tokens in this contract.
-  help                                          | Show summary
+    mint                  <amount>                | Creates new tokens and adds them to minter's account balance.
+    burn                  <amount>                | Redeems tokens the minter's account balance.
+    transfer              <recipient> <amount>    | Transfers tokens from client account to recipient account.
+    balanceOf             <account>               | Returns the balance of the given account.
+    clientAccountBalance                          | Returns the balance of the requesting client's account.
+    clientAccountID                               | Returns the id of the requesting client's account.
+    totalSupply                                   | Returns the total token supply.
+    approve               <spender> <value>       | Allows the spender to withdraw from the calling client's token account.
+    allowance             <owner>	<spender>     | Returns the amount still available for the spender to withdraw from the owner.
+    transferFrom          <from> <to> <value>     | Transfers the value amount from the \"from\" address to the \"to\" address.
+    name                                          | Returns a descriptive name for fungible tokens in this contract.
+    symbol                                        | Returns an abbreviated name for fungible tokens in this contract.
+    decimals                                      | Returns the decimals for fungible tokens in this contract.
+    help                                          | Show summary
+    use                   <recipient> <amount>    | Uses tokens from client account to recipient account.
+    usedBalanceOf         <account>               | Returns the used balance of the given account.
+	clientAccountUsedBalance                      | Returns the used balance of the requesting client's account.
+	useFrom               <from> <to> <value>     | Uses the value amount from the \"from\" address to the \"to\" address.
 `)
 }
 

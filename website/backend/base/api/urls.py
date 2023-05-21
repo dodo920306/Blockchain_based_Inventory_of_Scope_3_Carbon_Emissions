@@ -16,4 +16,6 @@ urlpatterns = [
     path('query/', views.index),
     path('tx/', views.getTx),
     path('blocks/', views.getBlocks),
+    path('signup/', views.getSignup),
+    path('email/', views.getEmail)
 ]

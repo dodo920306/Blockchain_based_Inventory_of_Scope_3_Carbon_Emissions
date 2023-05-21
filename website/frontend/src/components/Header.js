@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 //import styled from "styled-components";
 import AuthContext from '../context/AuthContext'
 import "./Header.css"
+import logo from '../images/logo_website.png'
 
 const Header = () => {
 
@@ -15,7 +16,8 @@ const Header = () => {
 
     return (
         <div className='headerContainer'>
-            <ul>
+            <ul>    
+                <li id='navLogo'><img src={logo} alt="Logo" /></li>
                 <li id='navHome'><Link to="/" className='navLink'>Home</Link></li>
                 <li id='navTransfer'><Link to="/transfer" className='navLink'>Transfer</Link></li>
                 <li id='navLogin'>

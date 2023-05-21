@@ -2,14 +2,17 @@ from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from django.http import HttpResponse
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth.models import User
 
 from .serializers import NoteSerializer
 from base.models import Note
 
 import subprocess
+from subprocess import Popen
 import json
 import os
 from dotenv import load_dotenv, dotenv_values
@@ -27,6 +30,28 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+@api_view(['GET', 'POST'])
+def getSignup(request):
+    if request.method == "POST":
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        un = body['username']
+        pwd = body['password']
+        mail = body['email']
+        org = mail.removesuffix('@gmail.com').lower()
+        try:
+            user = User.objects.create_user(username=un, password=pwd, email=mail)
+            output = subprocess.run(['/home/ubuntu/website/backend/base/api/user_management/sign_up.sh', str(org), str(un)])
+            return JsonResponse({"un": un, "pwd": pwd, "status": "success"})
+        except:
+            return JsonResponse({"un": un, "pwd": pwd, "status": "failed"})
+    else:
+        return HttpResponse('sign up')
+
+@api_view(['GET'])
+def getEmail(request):
+    return JsonResponse({"email": request.user.email})
 
 @api_view(['GET'])
 def getRoutes(request):
@@ -47,10 +72,14 @@ def getNotes(request):
     serializer = NoteSerializer(notes, many=True)
     return Response(serializer.data)
 
+
+
 @api_view(['GET'])
 def index(request):
     cmd = "/home/ubuntu/website/backend/base/api/token_erc_20/token_erc_20 " + request.GET.get('cmd')
     un = request.user.username
+    mail = request.user.email
+    org = mail.removesuffix('@gmail.com').lower()
     match un:
         case "org1minter":
             env = dotenv_values("/home/ubuntu/website/backend/base/api/env/.env.org1.minter")
@@ -71,7 +100,7 @@ def index(request):
         case "org3user1":
             env = dotenv_values("/home/ubuntu/website/backend/base/api/env/.env.org3.user1")
         case _:
-            env = dotenv_values("/home/ubuntu/website/backend/base/api/env/.env.org1.minter")
+            env = dotenv_values(f"/home/ubuntu/website/backend/base/api/env/.env.{org}.{un}")
     res = subprocess.run(cmd.split(" "), env=env, capture_output=True)
     output = res.stdout.decode().split("***")
     transaction, result = output[0].strip("-> ").rsplit(".", 1)[0], ""
@@ -89,6 +118,8 @@ def index(request):
 def getTx(request):
     
     un = request.user.username
+    mail = request.user.email
+    org = mail.removesuffix('@gmail.com').lower()
     match un:
         case "org1minter":
             env = dotenv_values("/home/ubuntu/website/backend/base/api/env/.env.org1.minter")
@@ -109,7 +140,7 @@ def getTx(request):
         case "org3user1":
             env = dotenv_values("/home/ubuntu/website/backend/base/api/env/.env.org3.user1")
         case _:
-            env = dotenv_values("/home/ubuntu/website/backend/base/api/env/.env.org1.minter")
+            env = dotenv_values(f"/home/ubuntu/website/backend/base/api/env/.env.{org}.{un}")
     cmd = "/home/ubuntu/website/backend/base/api/fetch_blocks/fetch_blocks.sh"
     res = subprocess.run(cmd.split(" "), env=env, capture_output=True)
     cmd = "/home/ubuntu/website/backend/base/api/fetch_transactions/fetch_transactions"
@@ -124,6 +155,8 @@ def getTx(request):
 def getBlocks(request):
     cmd = "/home/ubuntu/website/backend/base/api/fetch_blocks/fetch_blocks.sh"
     un = request.user.username
+    mail = request.user.email
+    org = mail.removesuffix('@gmail.com').lower()
     match un:
         case "org1minter":
             env = dotenv_values("/home/ubuntu/website/backend/base/api/env/.env.org1.minter")
@@ -144,7 +177,7 @@ def getBlocks(request):
         case "org3user1":
             env = dotenv_values("/home/ubuntu/website/backend/base/api/env/.env.org3.user1")
         case _:
-            env = dotenv_values("/home/ubuntu/website/backend/base/api/env/.env.org1.minter")
+            env = dotenv_values(f"/home/ubuntu/website/backend/base/api/env/.env.{org}.{un}")
     res = subprocess.run(cmd.split(" "), env=env, capture_output=True)
     # 指定文件夹路径
     folder_path = "/home/ubuntu/website/backend/base/api/fetch_blocks/"

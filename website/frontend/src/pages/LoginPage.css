@@ -1,13 +1,13 @@
 .loginContainer {
     height: 100%;
     background-color: white;
-    padding: 100px;
+    padding: 50px 100px;
 }
 .loginContainer form {
     height: 30px;
 }
 .formContainer {
-    height: 420px;
+    height: 450px;
     width: 300px;
     margin: auto;
     padding: 30px;
@@ -67,4 +67,15 @@
 #submitButton:hover {
     background-color: #6ECCAF;
     cursor: pointer;
+}
+
+#signupLink {
+    display: block;
+    font-size: 14px;
+    color: #8a8a8a;
+    font-weight: normal;
+}
+
+#signupLink a:visited{
+    color: #8a8a8a;
 }

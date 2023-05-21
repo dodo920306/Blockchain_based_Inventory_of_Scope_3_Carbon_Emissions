@@ -1,12 +1,18 @@
 .transferContainer {
     height: 100%;
-    padding: 50px;
+    padding: 30px 50px;
 }
 .functionsContainer {
     height: min-content;
     max-width: 1000px;
     margin: auto;
     padding-bottom: 50px;
+}
+.funcCat{
+    display: inline;
+    font-family: 'open sans';
+    font-size: 16px;
+    margin: 0px 10px;
 }
 .funcDropContainer {
     height: min-content;
@@ -23,7 +29,7 @@
 .funcItemContainer {
     /* display: flex; */
     text-align: center;
-    height: 200px;
+    /* height: 200px; */
     margin: 10px 0px;
 }
 /* icons */

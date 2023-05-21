@@ -47,12 +47,12 @@ export CORE_PEER_MSPCONFIGPATH=/home/ubuntu/fabric-samples/test-network/organiza
 export CORE_PEER_TLS_ROOTCERT_FILE=/home/ubuntu/fabric-samples/test-network/organizations/peerOrganizations/${ORG_NAME}.example.com/peers/peer0.${ORG_NAME}.example.com/tls/ca.crt
 export CORE_PEER_ADDRESS=localhost:$((PORT - 3))
 
-RECIPIENT=`/home/ubuntu/website/backend/base/api/token_erc_20/token_erc_20 clientAccountID | tail -n 1 | cut -d " " -f 3-`
+/home/ubuntu/website/backend/base/api/token_erc_20/token_erc_20 register
 
-export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_LOCALMSPID="Org1MSP"
-export CORE_PEER_MSPCONFIGPATH=/home/ubuntu/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/minter@org1.example.com/msp
-export CORE_PEER_TLS_ROOTCERT_FILE=/home/ubuntu/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-export CORE_PEER_ADDRESS=localhost:7051
+# export CORE_PEER_TLS_ENABLED=true
+# export CORE_PEER_LOCALMSPID="Org1MSP"
+# export CORE_PEER_MSPCONFIGPATH=/home/ubuntu/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/minter@org1.example.com/msp
+# export CORE_PEER_TLS_ROOTCERT_FILE=/home/ubuntu/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
+# export CORE_PEER_ADDRESS=localhost:7051
 
-/home/ubuntu/website/backend/base/api/token_erc_20/token_erc_20 transfer ${RECIPIENT} 0
+# /home/ubuntu/website/backend/base/api/token_erc_20/token_erc_20 transfer ${RECIPIENT} 0

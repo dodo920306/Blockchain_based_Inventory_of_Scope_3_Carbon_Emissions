@@ -28,4 +28,4 @@ $ pip install -r requirements.txt
 ```
 
 ## Usage
-Due to the excessive use of absolute path-driven programming in the current project, it is very troublesome to run it on another computer. However, we will fix this issue in the future.
+Due to the excessive use of absolute-path-driven programming in the current project, it is very troublesome to run it on another computer. However, we will fix this issue in the future.

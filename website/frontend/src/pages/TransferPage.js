@@ -19,7 +19,6 @@ const TransferPage = () => {
     const [balanceOfAccount, setBalanceOfAccount] = useState(null)
     const [showBalanceOf, setShowBalanceOf] = useState(false)
 
-
     const [transferRecipient, setTransferRecipient] = useState(null)
     const [transferAmount, setTransferAmount] = useState(null)
     const [showTransfer, setShowTransfer] = useState(false)
@@ -41,6 +40,21 @@ const TransferPage = () => {
     const [tfStatus, setTfStatus] = useState(null)
     const [showTf, setShowTf] = useState(false)
 
+    const [usedBalanceOf, setUsedBalanceOf] = useState(null)
+    const [usedBalanceOfAccount, setUsedBalanceOfAccount] = useState(null)
+    const [showUsedBalanceOf, setShowUsedBalanceOf] = useState(false)
+
+    const [useRecipient, setUseRecipient] = useState(null)
+    const [useAmount, setUseAmount] = useState(null)
+    const [showUse, setShowUse] = useState(false)
+    const [useStatus, setUseStatus] = useState(null)
+
+    const [useFrom, setUseFrom] = useState(null)
+    const [useTo, setUseTo] = useState(null)
+    const [useValue, setUseValue] = useState(null)
+    const [useFromStatus, setUseFromStatus] = useState(null)
+    const [showUseFrom, setShowUseFrom] = useState(false)
+
     const fetchBalance = async () => {
         try {
             const response = await fetch('http://10.8.2.183:8000/api/query/?cmd=clientAccountBalance', {
@@ -50,11 +64,8 @@ const TransferPage = () => {
                     'Authorization':'Bearer ' + String(authTokens.access)
                 }
             })
-            console.log(AuthContext)
             const data = await response.json()
-            console.log("user balance:", data)
             setBalance(data.result)
-            console.log("balance all :", balance)
             // console.log("balance: ", balance[2])
         } 
         catch (error) {
@@ -73,7 +84,6 @@ const TransferPage = () => {
             })
             const data = await response.json()
             setClientID(data.result)
-            console.log("clientID: ", clientID)
         } 
         catch (error) {
             console.log("error", error)
@@ -91,7 +101,6 @@ const TransferPage = () => {
             })
             const data = await response.json()
             setTotalSupply(data.result)
-            console.log("total supply: ", totalSupply)
         } 
         catch (error) {
             console.log("error", error)
@@ -108,13 +117,11 @@ const TransferPage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('data: ', data)
             if(data.result=='Failed.') {
                 setBalanceOf('Failed, please try again.')
             }else{
                 setBalanceOf(data.result)
             }
-            console.log("balance of: ", balanceOf)
         } 
         catch (error) {
             console.log("error", error)
@@ -131,7 +138,6 @@ const TransferPage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('transfer data: ', data)
             setTransferStatus(data.result)
         } 
         catch (error) {
@@ -149,7 +155,6 @@ const TransferPage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('approve data: ', data)
             setApproveStatus(data.result)
         } 
         catch (error) {
@@ -167,7 +172,6 @@ const TransferPage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('allowance data: ', data)
             setAllowanceStatus(data.result)
         } 
         catch (error) {
@@ -185,8 +189,62 @@ const TransferPage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('transferFrom data: ', data)
             setTfStatus(data.result)
+        } 
+        catch (error) {
+            console.log("error", error)
+        }
+    }
+
+    const fetchUsedBalanceOf = async () => {
+        try {
+            const response = await fetch(`http://10.8.2.183:8000/api/query/?cmd=usedBalanceOf%20${usedBalanceOfAccount}`, {
+                method:'GET',
+                headers:{
+                    'Content-Type':'application/json',
+                    'Authorization':'Bearer ' + String(authTokens.access)
+                }
+            })            
+            const data = await response.json()
+            if(data.result=='Failed.') {
+                setUsedBalanceOf('Failed, please try again.')
+            }else{
+                setUsedBalanceOf(data.result)
+            }
+        } 
+        catch (error) {
+            console.log("error", error)
+        }
+    };
+
+    const fetchUse = async () => {
+        try {
+            const response = await fetch(`http://10.8.2.183:8000/api/query/?cmd=transfer%20${useRecipient}%20${useAmount}`, {
+                method:'GET',
+                headers:{
+                    'Content-Type':'application/json',
+                    'Authorization':'Bearer ' + String(authTokens.access)
+                }
+            })            
+            const data = await response.json()
+            setUseStatus(data.result)
+        } 
+        catch (error) {
+            console.log("error", error)
+        }
+    };
+
+    const fetchUseFrom = async () => {
+        try {
+            const response = await fetch(`http://10.8.2.183:8000/api/query/?cmd=useFrom%20${useFrom}%20${useTo}%20${useValue}`, {
+                method:'GET',
+                headers:{
+                    'Content-Type':'application/json',
+                    'Authorization':'Bearer ' + String(authTokens.access)
+                }
+            })            
+            const data = await response.json()
+            setUseFromStatus(data.result)
         } 
         catch (error) {
             console.log("error", error)
@@ -195,19 +253,19 @@ const TransferPage = () => {
 
     const balanceOfAccountHandler = (e) => {
         setBalanceOfAccount(e.target.value);
-        console.log('balance of changed: ', balanceOfAccount)
     }
 
     const balanceOfHandler = (e) => {
         fetchBalanceOf(balanceOf);
     }
 
+
+
     useEffect(() => {
         
         fetchBalance(); // on first render, refresh
         fetchClientID();
         fetchTotalSupply();
-        console.log("env: ", user.username)
 
         const interval = setInterval(() => {
             fetchBalance();
@@ -220,11 +278,9 @@ const TransferPage = () => {
 
     const transferRecipientHandler = (e) => {
         setTransferRecipient(e.target.value);
-        console.log('transfer reciever changed')
     }
     const transferAmountHandler = (e) => {
         setTransferAmount(e.target.value);
-        console.log('transfer amount changed')
     }
 
     const transferHandler = async () => {
@@ -281,16 +337,56 @@ const TransferPage = () => {
         }
     }
 
+    const balanceOfUsedAccountHandler = (e) => {
+        setUsedBalanceOfAccount(e.target.value);
+    }   
+    const balanceOfUsedHandler = (e) => {
+        fetchUsedBalanceOf();
+    }
+
+    const useRecipientHAndler = (e) => {
+        setUseRecipient(e.target.value);
+    }
+    const useAmountHandler = (e) => {
+        setUseAmount(e.target.value);
+    }
+    const useHandler = async () => {
+        try {
+            fetchUse();
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    const useFromHandler = (e) => {
+        setUseFrom(e.target.value);
+    }
+    const useToHandler = (e) => {
+        setUseTo(e.target.value);
+    }
+    const useValueHandler = (e) => {
+        setUseValue(e.target.value);
+    }
+    const useFromToHandler = async () => {
+        try {
+            fetchUseFrom();
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
     return (
       <div className='transferContainer'>
         <div className='functionsContainer'>
+            <div className='funcCat'>Search</div>
+            <i class='fa fa-search' ></i>
             <div className='funcDropContainer' >
                 <div className='funcItemContainer' onClick={ () => { 
                             setBalanceOfAccount(null); 
                             setBalanceOf("");
                             setShowBalanceOf(!showBalanceOf);
                         } } >
-                    <i class='fa fa-search' ></i>
+                    
                     <p>Search the balance of an account</p>                
                 </div>
                 { showBalanceOf && 
@@ -307,6 +403,30 @@ const TransferPage = () => {
                     )
                 }
             </div>
+            <div className='funcDropContainer' >
+                <div className='funcItemContainer' onClick={ () => { 
+                            setUsedBalanceOfAccount(null); 
+                            setUsedBalanceOf("");
+                            setShowUsedBalanceOf(!showUsedBalanceOf);
+                        } } >
+                    <p>Search the used balance of an account</p>                
+                </div>
+                { showUsedBalanceOf && 
+                    (   
+                        <div className='infoContainer'>
+                            <div className='infoItemContainer'>
+                                <input onChange={ balanceOfUsedAccountHandler } placeholder='Account'></input>
+                            </div>
+                            <div className='infoItemContainer'>
+                                <button id='transferFunc' onClick={ balanceOfUsedHandler } >Submit</button>
+                            </div>
+                            <div className='resultContainer'>{ usedBalanceOf }</div>
+                        </div>
+                    )
+                }
+            </div>
+            <div className='funcCat'>Transfer</div>
+            <i class="fa fa-send"></i>
             <div className='funcDropContainer'>
                 <div className='funcItemContainer'
                     onClick={ () => { 
@@ -315,7 +435,6 @@ const TransferPage = () => {
                         setShowTransfer(!showTransfer) 
                         setTransferStatus(null);
                     } } >
-                    <i class="fa fa-send"></i>
                     <p>Send tokens to recipient account</p>
                 </div>
                 {
@@ -337,12 +456,42 @@ const TransferPage = () => {
             <div className='funcDropContainer'>
                 <div className='funcItemContainer'
                     onClick={ () => { 
+                        setTfFrom(null); 
+                        setTfTo(null);
+                        setTfValue(null);
+                        setShowTf(!showTf) 
+                        setTfStatus(null);
+                    } }>
+                    {/* <i class="fa-solid fa-money-bill-transfer"></i> */}
+                    <p>Transfer the value amount from a specific account to another</p>
+                </div>
+                {
+                    showTf && 
+                    (
+                        <div className='infoContainer'>
+                            <div className='infoItemContainer'>
+                                <input onChange={ tfFromHandler } placeholder='From address'></input>
+                                <input onChange={ tfToHandler } placeholder='To address'></input>
+                                <input onChange={ tfValueHandler } placeholder='Value'></input>
+                            </div>
+                            <div className='infoItemContainer'>
+                                <button id='transferFunc' onClick={ tfHandler } >Submit</button>
+                            </div>
+                            <div className='resultContainer'>{ tfStatus }</div>
+                        </div>
+                    )
+                }
+            </div>
+            <div className='funcCat'>Allowance</div>
+            <i class="fa-solid fa-user-check"></i>
+            <div className='funcDropContainer'>
+                <div className='funcItemContainer'
+                    onClick={ () => { 
                         setApproveSpender(null); 
                         setApproveValue(null);
                         setShowApprove(!showApprove) 
                         setApproveStatus(null);
                     } }>
-                    <i class="fa-solid fa-user-check"></i>
                     <p>Allow an account to withdraw from your account</p>
                 </div>
                 {
@@ -358,7 +507,6 @@ const TransferPage = () => {
                             </div>
                             <div className='resultContainer'>{ approveStatus }</div>
                         </div>
-                        
                     )
                 }
             </div>
@@ -370,7 +518,7 @@ const TransferPage = () => {
                         setShowAllowance(!showAllowance) 
                         setAllowanceStatus(null);
                     } }>
-                    <i class="fa-sharp fa-solid fa-coins" ></i>
+                    {/* <i class="fa-sharp fa-solid fa-coins" ></i> */}
                     <p>Search for the amount still available for the client account to withdraw from the owner account</p>
                 </div>
                 {
@@ -390,31 +538,58 @@ const TransferPage = () => {
                     )
                 }
             </div>
+            <div className='funcCat'>Use</div>
+            <i class="fa-solid fa-shop"></i>
             <div className='funcDropContainer'>
                 <div className='funcItemContainer'
                     onClick={ () => { 
-                        setTfFrom(null); 
-                        setTfTo(null);
-                        setTfValue(null);
-                        setShowTf(!showTf) 
-                        setTfStatus(null);
-                    } }>
-                    <i class="fa-solid fa-money-bill-transfer"></i>
-                    <p>Transfer the value amount from a specific account to another</p>
+                        setUseRecipient(null); 
+                        setUseAmount(null);
+                        setShowUse(!showUse) 
+                        setUseStatus(null);
+                    } } >
+                    <p>Use recipient account's tokens</p>
                 </div>
                 {
-                    showTf && 
+                    showUse && 
                     (
                         <div className='infoContainer'>
                             <div className='infoItemContainer'>
-                                <input onChange={ tfFromHandler } placeholder='From address'></input>
-                                <input onChange={ tfToHandler } placeholder='To address'></input>
-                                <input onChange={ tfValueHandler } placeholder='Value'></input>
+                                <input onChange={ useRecipientHAndler } placeholder='Recipient Address'></input>
+                                <input onChange={ useAmountHandler } placeholder='Use Amount'></input>
                             </div>
                             <div className='infoItemContainer'>
-                                <button id='transferFunc' onClick={ tfHandler } >Submit</button>
+                                <button id='transferFunc' onClick={ useHandler } >Submit</button>
                             </div>
-                            <div className='resultContainer'>{ tfStatus }</div>
+                            <div className='resultContainer'>{ useStatus }</div>
+                        </div>
+                    )
+                }
+            </div>
+            <div className='funcDropContainer'>
+                <div className='funcItemContainer'
+                    onClick={ () => { 
+                        setUseFrom(null); 
+                        setUseTo(null);
+                        setUseValue(null);
+                        setShowUseFrom(!showUseFrom) 
+                        setUseFromStatus(null);
+                    } }>
+                    <p>Uses the value amount of a specific account to another</p>
+                </div>
+                {
+                    showUseFrom && 
+                    (
+                        <div className='infoContainer'>
+                            <div className='infoItemContainer'>
+                                <input onChange={ useFromHandler } placeholder='From address'></input>
+                                <input onChange={ useToHandler } placeholder='To address'></input>
+                                <input onChange={ useValueHandler } placeholder='Use Amount'></input>
+                            </div>
+                            <div className='infoItemContainer'>
+                                <button id='transferFunc' onClick={ useFromToHandler } >Submit</button>
+                            </div>
+                            <div className='resultContainer'>{ useFromStatus }</div>
                         </div>
                     )
                 }

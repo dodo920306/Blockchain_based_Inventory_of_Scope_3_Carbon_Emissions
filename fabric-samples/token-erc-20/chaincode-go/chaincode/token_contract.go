@@ -1,6 +1,8 @@
 package chaincode
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +20,7 @@ const totalSupplyKey = "totalSupply"
 
 // Define objectType names for prefix
 const allowancePrefix = "allowance"
+const usedPrefix = "used"
 
 // Define key names for options
 
@@ -47,13 +50,13 @@ func (s *SmartContract) Mint(ctx contractapi.TransactionContextInterface, amount
 	}
 
 	// Check minter authorization - this sample assumes Org1 is the central banker with privilege to mint new tokens
-	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
-	if err != nil {
-		return fmt.Errorf("failed to get MSPID: %v", err)
-	}
-	if clientMSPID != "Org1MSP" {
-		return fmt.Errorf("client is not authorized to mint new tokens")
-	}
+	// clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get MSPID: %v", err)
+	// }
+	// if clientMSPID != "Org1MSP" {
+	// 	return fmt.Errorf("client is not authorized to mint new tokens")
+	// }
 
 	// Get ID of submitting client identity
 	minter, err := ctx.GetClientIdentity().GetID()
@@ -65,6 +68,8 @@ func (s *SmartContract) Mint(ctx contractapi.TransactionContextInterface, amount
 		return fmt.Errorf("mint amount must be a positive integer")
 	}
 
+	minterbytes := sha256.Sum256([]byte(minter))
+	minter = "0x" + hex.EncodeToString(minterbytes[:20])
 	currentBalanceBytes, err := ctx.GetStub().GetState(minter)
 	if err != nil {
 		return fmt.Errorf("failed to read minter account %s from world state: %v", minter, err)
@@ -116,7 +121,7 @@ func (s *SmartContract) Mint(ctx contractapi.TransactionContextInterface, amount
 	}
 
 	// Emit the Transfer event
-	transferEvent := event{"0x0", minter, amount}
+	transferEvent := event{"0x0000000000000000000000000000000000000000", minter, amount}
 	transferEventJSON, err := json.Marshal(transferEvent)
 	if err != nil {
 		return fmt.Errorf("failed to obtain JSON encoding: %v", err)
@@ -144,13 +149,13 @@ func (s *SmartContract) Burn(ctx contractapi.TransactionContextInterface, amount
 		return fmt.Errorf("Contract options need to be set before calling any function, call Initialize() to initialize contract")
 	}
 	// Check minter authorization - this sample assumes Org1 is the central banker with privilege to burn new tokens
-	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
-	if err != nil {
-		return fmt.Errorf("failed to get MSPID: %v", err)
-	}
-	if clientMSPID != "Org1MSP" {
-		return fmt.Errorf("client is not authorized to mint new tokens")
-	}
+	// clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get MSPID: %v", err)
+	// }
+	// if clientMSPID != "Org1MSP" {
+	// 	return fmt.Errorf("client is not authorized to mint new tokens")
+	// }
 
 	// Get ID of submitting client identity
 	minter, err := ctx.GetClientIdentity().GetID()
@@ -162,6 +167,8 @@ func (s *SmartContract) Burn(ctx contractapi.TransactionContextInterface, amount
 		return errors.New("burn amount must be a positive integer")
 	}
 
+	minterbytes := sha256.Sum256([]byte(minter))
+	minter = "0x" + hex.EncodeToString(minterbytes[:20])
 	currentBalanceBytes, err := ctx.GetStub().GetState(minter)
 	if err != nil {
 		return fmt.Errorf("failed to read minter account %s from world state: %v", minter, err)
@@ -211,7 +218,7 @@ func (s *SmartContract) Burn(ctx contractapi.TransactionContextInterface, amount
 	}
 
 	// Emit the Transfer event
-	transferEvent := event{minter, "0x0", amount}
+	transferEvent := event{minter, "0x0000000000000000000000000000000000000000", amount}
 	transferEventJSON, err := json.Marshal(transferEvent)
 	if err != nil {
 		return fmt.Errorf("failed to obtain JSON encoding: %v", err)
@@ -246,6 +253,8 @@ func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, re
 		return fmt.Errorf("failed to get client id: %v", err)
 	}
 
+	clientIDBytes := sha256.Sum256([]byte(clientID))
+	clientID = "0x" + hex.EncodeToString(clientIDBytes[:20])
 	err = transferHelper(ctx, clientID, recipient, amount)
 	if err != nil {
 		return fmt.Errorf("failed to transfer: %v", err)
@@ -258,6 +267,44 @@ func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, re
 		return fmt.Errorf("failed to obtain JSON encoding: %v", err)
 	}
 	err = ctx.GetStub().SetEvent("Transfer", transferEventJSON)
+	if err != nil {
+		return fmt.Errorf("failed to set event: %v", err)
+	}
+
+	return nil
+}
+
+func (s *SmartContract) Use(ctx contractapi.TransactionContextInterface, recipient string, amount int) error {
+
+	// Check if contract has been intilized first
+	initialized, err := checkInitialized(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check if contract is already initialized: %v", err)
+	}
+	if !initialized {
+		return fmt.Errorf("Contract options need to be set before calling any function, call Initialize() to initialize contract")
+	}
+
+	// Get ID of submitting client identity
+	clientID, err := ctx.GetClientIdentity().GetID()
+	if err != nil {
+		return fmt.Errorf("failed to get client id: %v", err)
+	}
+
+	clientIDBytes := sha256.Sum256([]byte(clientID))
+	clientID = "0x" + hex.EncodeToString(clientIDBytes[:20])
+	err = useHelper(ctx, clientID, recipient, amount)
+	if err != nil {
+		return fmt.Errorf("failed to transfer: %v", err)
+	}
+
+	// Emit the Transfer event
+	transferEvent := event{clientID, recipient, amount}
+	transferEventJSON, err := json.Marshal(transferEvent)
+	if err != nil {
+		return fmt.Errorf("failed to obtain JSON encoding: %v", err)
+	}
+	err = ctx.GetStub().SetEvent("Use", transferEventJSON)
 	if err != nil {
 		return fmt.Errorf("failed to set event: %v", err)
 	}
@@ -290,6 +337,35 @@ func (s *SmartContract) BalanceOf(ctx contractapi.TransactionContextInterface, a
 	return balance, nil
 }
 
+func (s *SmartContract) UsedBalanceOf(ctx contractapi.TransactionContextInterface, account string) (int, error) {
+
+	// Check if contract has been intilized first
+	initialized, err := checkInitialized(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to check if contract is already initialized: %v", err)
+	}
+	if !initialized {
+		return 0, fmt.Errorf("Contract options need to be set before calling any function, call Initialize() to initialize contract")
+	}
+
+	useKey, err := ctx.GetStub().CreateCompositeKey(usedPrefix, []string{account})
+	if err != nil {
+		return 0, fmt.Errorf("failed to create the composite key for prefix %s: %v", usedPrefix, err)
+	}
+	balanceBytes, err := ctx.GetStub().GetState(useKey)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read recipient account %s from world state: %v", account, err)
+	}
+	// If recipient current balance doesn't yet exist, we'll create it with a current balance of 0
+	if balanceBytes == nil {
+		return 0, fmt.Errorf("the account %s does not exist", account)
+	}
+
+	balance, _ := strconv.Atoi(string(balanceBytes)) // Error handling not needed since Itoa() was used when setting the account balance, guaranteeing it was an integer.
+
+	return balance, nil
+}
+
 // ClientAccountBalance returns the balance of the requesting client's account
 func (s *SmartContract) ClientAccountBalance(ctx contractapi.TransactionContextInterface) (int, error) {
 
@@ -308,10 +384,49 @@ func (s *SmartContract) ClientAccountBalance(ctx contractapi.TransactionContextI
 		return 0, fmt.Errorf("failed to get client id: %v", err)
 	}
 
+	clientIDBytes := sha256.Sum256([]byte(clientID))
+	clientID = "0x" + hex.EncodeToString(clientIDBytes[:20])
 	balanceBytes, err := ctx.GetStub().GetState(clientID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to read from world state: %v", err)
 	}
+	if balanceBytes == nil {
+		return 0, fmt.Errorf("the account %s does not exist", clientID)
+	}
+
+	balance, _ := strconv.Atoi(string(balanceBytes)) // Error handling not needed since Itoa() was used when setting the account balance, guaranteeing it was an integer.
+
+	return balance, nil
+}
+
+func (s *SmartContract) ClientAccountUsedBalance(ctx contractapi.TransactionContextInterface) (int, error) {
+
+	// Check if contract has been intilized first
+	initialized, err := checkInitialized(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to check if contract is already initialized: %v", err)
+	}
+	if !initialized {
+		return 0, fmt.Errorf("Contract options need to be set before calling any function, call Initialize() to initialize contract")
+	}
+
+	// Get ID of submitting client identity
+	clientID, err := ctx.GetClientIdentity().GetID()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get client id: %v", err)
+	}
+
+	clientIDBytes := sha256.Sum256([]byte(clientID))
+	clientAccountID := "0x" + hex.EncodeToString(clientIDBytes[:20])
+	useKey, err := ctx.GetStub().CreateCompositeKey(usedPrefix, []string{clientAccountID})
+	if err != nil {
+		return 0, fmt.Errorf("failed to create the composite key for prefix %s: %v", usedPrefix, err)
+	}
+	balanceBytes, err := ctx.GetStub().GetState(useKey)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read recipient account %s from world state: %v", clientAccountID, err)
+	}
+	// If recipient current balance doesn't yet exist, we'll create it with a current balance of 0
 	if balanceBytes == nil {
 		return 0, fmt.Errorf("the account %s does not exist", clientID)
 	}
@@ -339,6 +454,37 @@ func (s *SmartContract) ClientAccountID(ctx contractapi.TransactionContextInterf
 	clientAccountID, err := ctx.GetClientIdentity().GetID()
 	if err != nil {
 		return "", fmt.Errorf("failed to get client id: %v", err)
+	}
+
+	clientIDBytes := sha256.Sum256([]byte(clientAccountID))
+	clientAccountID = "0x" + hex.EncodeToString(clientIDBytes[:20])
+
+	toCurrentBalanceBytes, err := ctx.GetStub().GetState(clientAccountID)
+	if err != nil {
+		return "", fmt.Errorf("failed to read recipient account %s from world state: %v", clientAccountID, err)
+	}
+	// If recipient current balance doesn't yet exist, we'll create it with a current balance of 0
+	if toCurrentBalanceBytes == nil {
+		err = ctx.GetStub().PutState(clientAccountID, []byte(strconv.Itoa(0)))
+		if err != nil {
+			return "", err
+		}
+	}
+
+	useKey, err := ctx.GetStub().CreateCompositeKey(usedPrefix, []string{clientAccountID})
+	if err != nil {
+		return "", fmt.Errorf("failed to create the composite key for prefix %s: %v", usedPrefix, err)
+	}
+	toCurrentUseBalanceBytes, err := ctx.GetStub().GetState(useKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to read recipient account %s from world state: %v", clientAccountID, err)
+	}
+	// If recipient current balance doesn't yet exist, we'll create it with a current balance of 0
+	if toCurrentUseBalanceBytes == nil {
+		err = ctx.GetStub().PutState(useKey, []byte(strconv.Itoa(0)))
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return clientAccountID, nil
@@ -396,11 +542,25 @@ func (s *SmartContract) Approve(ctx contractapi.TransactionContextInterface, spe
 		return fmt.Errorf("failed to get client id: %v", err)
 	}
 
+	clientIDBytes := sha256.Sum256([]byte(owner))
+	owner = "0x" + hex.EncodeToString(clientIDBytes[:20])
 	// Create allowanceKey
 	allowanceKey, err := ctx.GetStub().CreateCompositeKey(allowancePrefix, []string{owner, spender})
 	if err != nil {
 		return fmt.Errorf("failed to create the composite key for prefix %s: %v", allowancePrefix, err)
 	}
+	toCurrentBalanceBytes, err := ctx.GetStub().GetState(spender)
+	if err != nil {
+		return fmt.Errorf("failed to read recipient account %s from world state: %v", spender, err)
+	}
+
+	// If recipient current balance doesn't yet exist, we'll create it with a current balance of 0
+	if toCurrentBalanceBytes == nil {
+		return fmt.Errorf("failed to read recipient account %s from world state: %v", spender, err)
+	}
+	// else {
+	// 	toCurrentBalance, _ = strconv.Atoi(string(toCurrentBalanceBytes)) // Error handling not needed since Itoa() was used when setting the account balance, guaranteeing it was an integer.
+	// }
 
 	// Update the state of the smart contract by adding the allowanceKey and value
 	err = ctx.GetStub().PutState(allowanceKey, []byte(strconv.Itoa(value)))
@@ -481,6 +641,8 @@ func (s *SmartContract) TransferFrom(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("failed to get client id: %v", err)
 	}
 
+	clientIDBytes := sha256.Sum256([]byte(spender))
+	spender = "0x" + hex.EncodeToString(clientIDBytes[:20])
 	// Create allowanceKey
 	allowanceKey, err := ctx.GetStub().CreateCompositeKey(allowancePrefix, []string{from, spender})
 	if err != nil {
@@ -525,6 +687,78 @@ func (s *SmartContract) TransferFrom(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("failed to obtain JSON encoding: %v", err)
 	}
 	err = ctx.GetStub().SetEvent("Transfer", transferEventJSON)
+	if err != nil {
+		return fmt.Errorf("failed to set event: %v", err)
+	}
+
+	log.Printf("spender %s allowance updated from %d to %d", spender, currentAllowance, updatedAllowance)
+
+	return nil
+}
+
+func (s *SmartContract) UseFrom(ctx contractapi.TransactionContextInterface, from string, to string, value int) error {
+
+	// Check if contract has been intilized first
+	initialized, err := checkInitialized(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check if contract is already initialized: %v", err)
+	}
+	if !initialized {
+		return fmt.Errorf("Contract options need to be set before calling any function, call Initialize() to initialize contract")
+	}
+
+	// Get ID of submitting client identity
+	spender, err := ctx.GetClientIdentity().GetID()
+	if err != nil {
+		return fmt.Errorf("failed to get client id: %v", err)
+	}
+
+	clientIDBytes := sha256.Sum256([]byte(spender))
+	spender = "0x" + hex.EncodeToString(clientIDBytes[:20])
+	// Create allowanceKey
+	allowanceKey, err := ctx.GetStub().CreateCompositeKey(allowancePrefix, []string{from, spender})
+	if err != nil {
+		return fmt.Errorf("failed to create the composite key for prefix %s: %v", allowancePrefix, err)
+	}
+
+	// Retrieve the allowance of the spender
+	currentAllowanceBytes, err := ctx.GetStub().GetState(allowanceKey)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve the allowance for %s from world state: %v", allowanceKey, err)
+	}
+
+	var currentAllowance int
+	currentAllowance, _ = strconv.Atoi(string(currentAllowanceBytes)) // Error handling not needed since Itoa() was used when setting the totalSupply, guaranteeing it was an integer.
+
+	// Check if transferred value is less than allowance
+	if currentAllowance < value {
+		return fmt.Errorf("spender does not have enough allowance for transfer")
+	}
+
+	// Initiate the transfer
+	err = useHelper(ctx, from, to, value)
+	if err != nil {
+		return fmt.Errorf("failed to transfer: %v", err)
+	}
+
+	// Decrease the allowance
+	updatedAllowance, err := sub(currentAllowance, value)
+	if err != nil {
+		return err
+	}
+
+	err = ctx.GetStub().PutState(allowanceKey, []byte(strconv.Itoa(updatedAllowance)))
+	if err != nil {
+		return err
+	}
+
+	// Emit the Transfer event
+	transferEvent := event{from, to, value}
+	transferEventJSON, err := json.Marshal(transferEvent)
+	if err != nil {
+		return fmt.Errorf("failed to obtain JSON encoding: %v", err)
+	}
+	err = ctx.GetStub().SetEvent("Use", transferEventJSON)
 	if err != nil {
 		return fmt.Errorf("failed to set event: %v", err)
 	}
@@ -604,13 +838,13 @@ func (s *SmartContract) Decimals(ctx contractapi.TransactionContextInterface) (s
 func (s *SmartContract) Initialize(ctx contractapi.TransactionContextInterface, name string, symbol string, decimals string) (bool, error) {
 
 	// Check minter authorization - this sample assumes Org1 is the central banker with privilege to intitialize contract
-	clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
-	if err != nil {
-		return false, fmt.Errorf("failed to get MSPID: %v", err)
-	}
-	if clientMSPID != "Org1MSP" {
-		return false, fmt.Errorf("client is not authorized to initialize contract")
-	}
+	// clientMSPID, err := ctx.GetClientIdentity().GetMSPID()
+	// if err != nil {
+	// 	return false, fmt.Errorf("failed to get MSPID: %v", err)
+	// }
+	// if clientMSPID != "Org1MSP" {
+	// 	return false, fmt.Errorf("client is not authorized to initialize contract")
+	// }
 
 	// Check contract options are not already set, client is not authorized to change them once intitialized
 	bytes, err := ctx.GetStub().GetState(nameKey)
@@ -676,7 +910,7 @@ func transferHelper(ctx contractapi.TransactionContextInterface, from string, to
 	var toCurrentBalance int
 	// If recipient current balance doesn't yet exist, we'll create it with a current balance of 0
 	if toCurrentBalanceBytes == nil {
-		toCurrentBalance = 0
+		return fmt.Errorf("failed to read recipient account %s from world state: %v", to, err)
 	} else {
 		toCurrentBalance, _ = strconv.Atoi(string(toCurrentBalanceBytes)) // Error handling not needed since Itoa() was used when setting the account balance, guaranteeing it was an integer.
 	}
@@ -697,6 +931,72 @@ func transferHelper(ctx contractapi.TransactionContextInterface, from string, to
 	}
 
 	err = ctx.GetStub().PutState(to, []byte(strconv.Itoa(toUpdatedBalance)))
+	if err != nil {
+		return err
+	}
+
+	log.Printf("client %s balance updated from %d to %d", from, fromCurrentBalance, fromUpdatedBalance)
+	log.Printf("recipient %s balance updated from %d to %d", to, toCurrentBalance, toUpdatedBalance)
+
+	return nil
+}
+
+func useHelper(ctx contractapi.TransactionContextInterface, from string, to string, value int) error {
+
+	if from == to {
+		return fmt.Errorf("cannot use to and from same client account")
+	}
+
+	if value < 0 { // transfer of 0 is allowed in ERC-20, so just validate against negative amounts
+		return fmt.Errorf("use amount cannot be negative")
+	}
+
+	fromCurrentBalanceBytes, err := ctx.GetStub().GetState(from)
+	if err != nil {
+		return fmt.Errorf("failed to read client account %s from world state: %v", from, err)
+	}
+
+	if fromCurrentBalanceBytes == nil {
+		return fmt.Errorf("client account %s has no balance", from)
+	}
+
+	fromCurrentBalance, _ := strconv.Atoi(string(fromCurrentBalanceBytes)) // Error handling not needed since Itoa() was used when setting the account balance, guaranteeing it was an integer.
+
+	if fromCurrentBalance < value {
+		return fmt.Errorf("client account %s has insufficient funds", from)
+	}
+
+	useKey, err := ctx.GetStub().CreateCompositeKey(usedPrefix, []string{to})
+	if err != nil {
+		return fmt.Errorf("failed to create the composite key for prefix %s: %v", usedPrefix, err)
+	}
+	toCurrentBalanceBytes, err := ctx.GetStub().GetState(useKey)
+	if err != nil {
+		return fmt.Errorf("failed to read recipient account %s from world state: %v", to, err)
+	}
+	var toCurrentBalance int
+	if toCurrentBalanceBytes == nil {
+		return fmt.Errorf("failed to read recipient account %s from world state: %v", to, err)
+	} else {
+		toCurrentBalance, _ = strconv.Atoi(string(toCurrentBalanceBytes)) // Error handling not needed since Itoa() was used when setting the account balance, guaranteeing it was an integer.
+	}
+
+	fromUpdatedBalance, err := sub(fromCurrentBalance, value)
+	if err != nil {
+		return err
+	}
+
+	toUpdatedBalance, err := add(toCurrentBalance, value)
+	if err != nil {
+		return err
+	}
+
+	err = ctx.GetStub().PutState(from, []byte(strconv.Itoa(fromUpdatedBalance)))
+	if err != nil {
+		return err
+	}
+
+	err = ctx.GetStub().PutState(useKey, []byte(strconv.Itoa(toUpdatedBalance)))
 	if err != nil {
 		return err
 	}

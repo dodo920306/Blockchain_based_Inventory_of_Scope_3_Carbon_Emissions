@@ -8,6 +8,8 @@ const HomePage = () => {
     let [notes, setNotes] = useState([])
     let {authTokens, logoutTokens} = useContext(AuthContext)
     let {user, logoutUser} = useContext(AuthContext)
+    const [loading, setLoading] = useState(false)
+
     const location = useLocation()
     const currDirection = new URLSearchParams(location.search).get("direction");
 
@@ -49,6 +51,12 @@ const HomePage = () => {
     const [tx, setTx] = useState(null)
     const [txMap, setTxMap] = useState(null)
 
+    const [mail, setMail] = useState(null)
+
+    const [usedBalance, setUsedBalance] = useState(null)
+
+    const [showShowAll, setShowAll] = useState(true)
+
     const fetchBalance = async () => {
         try {
             const response = await fetch('http://10.8.2.183:8000/api/query/?cmd=clientAccountBalance', {
@@ -58,12 +66,25 @@ const HomePage = () => {
                     'Authorization':'Bearer ' + String(authTokens.access)
                 }
             })
-            console.log(AuthContext)
             const data = await response.json()
-            console.log("user balance:", data)
             setBalance(data.result)
-            console.log("balance all :", balance)
-            // console.log("balance: ", balance[2])
+        } 
+        catch (error) {
+            console.log("error", error)
+        }
+    };
+
+    const fetchUsedBalance = async () => {
+        try {
+            const response = await fetch('http://10.8.2.183:8000/api/query/?cmd=clientAccountUsedBalance', {
+                method:'GET',
+                headers:{
+                    'Content-Type':'application/json',
+                    'Authorization':'Bearer ' + String(authTokens.access)
+                }
+            })
+            const data = await response.json()
+            setUsedBalance(data.result)
         } 
         catch (error) {
             console.log("error", error)
@@ -81,7 +102,6 @@ const HomePage = () => {
             })
             const data = await response.json()
             setClientID(data.result)
-            console.log("home clientID: ", clientID)
             setCroppedID(sliceID(data.result))
         } 
         catch (error) {
@@ -100,7 +120,6 @@ const HomePage = () => {
             })
             const data = await response.json()
             setTotalSupply(data.result)
-            console.log("total supply: ", totalSupply)
         } 
         catch (error) {
             console.log("error", error)
@@ -117,9 +136,7 @@ const HomePage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('data: ', data)
             setBalanceOf(data.result)
-            console.log("balance of: ", balanceOf)
         } 
         catch (error) {
             console.log("error", error)
@@ -136,7 +153,6 @@ const HomePage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('transfer data: ', data)
             setTransferStatus(data.result)
         } 
         catch (error) {
@@ -154,7 +170,6 @@ const HomePage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('approve data: ', data)
             setApproveStatus(data.result)
         } 
         catch (error) {
@@ -172,7 +187,6 @@ const HomePage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('allowance data: ', data)
             setAllowanceStatus(data.result)
         } 
         catch (error) {
@@ -190,7 +204,6 @@ const HomePage = () => {
                 }
             })            
             const data = await response.json()
-            console.log('transferFrom data: ', data)
             setTfStatus(data.result)
         } 
         catch (error) {
@@ -199,6 +212,7 @@ const HomePage = () => {
     }
 
     const fetchTX = async () => {
+        setLoading(true);
         try {
             const response = await fetch(`http://10.8.2.183:8000/api/tx/`, {
                 method:'GET',
@@ -208,16 +222,18 @@ const HomePage = () => {
                 }
             })            
             const data = await response.json()
-            console.log("tx: ", data.output.length)
             setTx(data.output)
             setTxMap(data.output.slice(data.output.length-10,data.output.length).reverse().map((value) => {
-                return <TransactionItem TransactionID={value.TransactionID} 
+                return <TransactionItem 
+                    Time={value.Timestamp}
+                    TransactionID={value.TransactionID} 
                     BlockNumber={value.BlockNumber} 
                     EventName={value.EventName} 
                     From={value.Payload.from} 
                     To={value.Payload.to} 
                     Value={value.Payload.value}/>;
             }));
+            setLoading(false);
         } 
         catch (error) {
             console.log("error", error)
@@ -225,9 +241,25 @@ const HomePage = () => {
         }
     }
 
+    const fetchMail = async () => {
+        try {
+            const response = await fetch('http://10.8.2.183:8000/api/email', {
+                method:'GET',
+                headers:{
+                    'Content-Type':'application/json',
+                    'Authorization':'Bearer ' + String(authTokens.access)
+                }
+            })
+            const data = await response.json()
+            setMail(data.email)
+        } 
+        catch (error) {
+            console.log("error", error)
+        }
+    };
+
     const balanceOfAccountHandler = (e) => {
         setBalanceOfAccount(e.target.value);
-        console.log('balance of changed: ', balanceOfAccount)
     }
 
     const balanceOfHandler = (e) => {
@@ -240,29 +272,22 @@ const HomePage = () => {
         fetchClientID();
         fetchTotalSupply();
         fetchTX();
-        console.log("env: ", user.username)
-        console.log("env: ", user.groups)
+        fetchMail();
+        fetchUsedBalance();
 
         const interval = setInterval(() => {
             fetchBalance();
-        }, 1000000); /* 10000 ten sec*/
+        }, 100000); /* 10000 ten sec*/
         return () => clearInterval(interval);
 
     }, [])
 
 
-
-    // useEffect(() => {
-    //     fetchTX();
-    // }, [location])
-
     const transferRecipientHandler = (e) => {
         setTransferRecipient(e.target.value);
-        console.log('transfer reciever changed')
     }
     const transferAmountHandler = (e) => {
         setTransferAmount(e.target.value);
-        console.log('transfer amount changed')
     }
 
     const transferHandler = async () => {
@@ -337,13 +362,30 @@ const HomePage = () => {
         document.body.removeChild(textArea);
     }
 
+    const showAll = () => {
+        setTxMap(tx.reverse().map((value) => {
+            return <TransactionItem 
+                Time={value.Timestamp}
+                TransactionID={value.TransactionID} 
+                BlockNumber={value.BlockNumber} 
+                EventName={value.EventName} 
+                From={value.Payload.from} 
+                To={value.Payload.to} 
+                Value={value.Payload.value}/>;
+        }));
+    }
+
     return (
       <div className='homeContainer'>
         <div className='dashContainer'>
             <div className='tokenContainer'>
-                <p id='balanceTitle'>Carbon Tokens:</p>
+                <p id='balanceTitle'>My Carbon Tokens:</p>
                 <p id='tokenNumber'>{ balance }</p>
                 {/* <p id='tokenUnit'>carbon tokens</p> */}
+            </div>
+            <div className='supplyContainer'>
+                <p id='supplyTitle'>My Used Tokens: </p>
+                <p id='supplyDisplay'>{ usedBalance }</p>
             </div>
             <div className='supplyContainer'>
                 <p id='supplyTitle'>Total Supply: </p>
@@ -367,6 +409,7 @@ const HomePage = () => {
         <div className='transactionsContainer'>
             <p id='txTitle'>Recent Transactions</p>
             <li className='colTitle'>
+                <span>Time</span>
 				<span>Transaction ID</span>
 				<span>Event</span>
 				<span>From</span>
@@ -374,7 +417,18 @@ const HomePage = () => {
                 <span>Value</span>
 			</li>
             { txMap }
+            { loading && <div id='loadingIcon' ><i class="fa fa-spinner fa-spin" ></i> </div>}
+            { !loading && showShowAll &&
+                <li>
+                    <button id="showAll" onClick={ () => { 
+                        showAll();
+                        console.log("show all");
+                        setShowAll(false);
+                    } }>Show all</button>
+                </li>
+            }
         </div>
+        
       </div>
     )
   }

@@ -8,6 +8,7 @@ const TransactionItem = (props) => {
     const txTo = props.To
     const txBlock = props.BlockNumber
     const txValue = props.Value
+    const txTime = props.Time
 
 
     const sliceTx = (input) => {
@@ -23,6 +24,7 @@ const TransactionItem = (props) => {
     return (
         <div className="txItemContainer" >
             <li className='listItem' onClick={ () => { setDetails(!details) }}>
+                <span>{ txTime }</span>
                 <span>{ sliceID }</span>
                 <span>{ txEvent }</span>
                 <span>{ sliceFrom }</span>
